@@ -1,0 +1,78 @@
+---
+title: 'Reproducible Research: Peer Assessment 2'
+author: "jsalzwedel"
+date: "05/20/2015"
+output: 
+    html_document:
+        keep_md: true
+---
+
+# Synopsis
+This analysis will explore the NOAA Storm Database to look at the health impacts
+and economic consequences of of severe weather events.
+
+
+# Data Processing
+```{r, cache=TRUE}
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+download.file(url,"StormData.csv.bz2",method="wget")
+system("bunzip2 StormData.csv.bz2")
+```
+
+Load relevant libraries
+```{r}
+library(data.table)
+library(tis)
+```
+
+Read in the data
+```{r, cache=TRUE}
+data <- read.csv("StormData.csv")
+data <- data.table(data)
+```
+
+We are interested in the health and economic impacts of events. Let's subset the
+relevant sections of the data: fatalities, injuries, property damage, and crop 
+damage, along with the event type and the event reference number.
+
+```{r}
+subsetData <- subset(data,select=c(EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG,REFNUM))
+```
+
+Rather than judge the relative severity of X fatalities vs Y injuries, let's
+combine both of those into one category called Casualties
+
+```{r}
+impact <- data.table(EventType = data$EVTYPE,
+                     Casualties = data$FATALITIES + data$INJURIES,
+                     Costs = data$PROPDMG + data$CROPDMG,
+                     ReferenceNum = data$REFNUM)
+```
+
+```{r}
+with(data,plot(EVTYPE,FATALITIES))
+avgFatalities <- aggregate(x = list(AvgFatalities = data$FATALITIES),
+                           by=list(Event = data$EVTYPE),
+                           FUN=mean)
+avgFatalities <- data.table(avgFatalities)
+setorder(avgFatalities,-AvgFatalities)
+head(avgFatalities)
+```
+
+Let's take a closer look at the events where fatalities occured
+```{r}
+fatalData <- data[data$FATALITIES > 0,]
+setorder(fatalData,-FATALITIES)
+```
+
+
+```{r}
+avgInjuries <- aggregate(x = list(AvgInjuries = data$INJURIES),
+                           by=list(Event = data$EVTYPE),
+                           FUN=mean)
+avgInjuries <- data.table(avgInjuries)
+setorder(avgInjuries, -AvgInjuries)
+head(avgInjuries,20)
+```
+
+# Results
