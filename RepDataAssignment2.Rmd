@@ -13,6 +13,8 @@ and economic consequences of of severe weather events.
 
 
 # Data Processing
+
+## Acquire and Read the Data
 ```{r, cache=TRUE}
 url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 download.file(url,"StormData.csv.bz2",method="wget")
@@ -22,7 +24,6 @@ system("bunzip2 StormData.csv.bz2")
 Load relevant libraries
 ```{r}
 library(data.table)
-library(tis)
 ```
 
 Read in the data
@@ -31,16 +32,15 @@ data <- read.csv("StormData.csv")
 data <- data.table(data)
 ```
 
+
+## Cleaning
+
 We are interested in the health and economic impacts of events. Let's subset the
 relevant sections of the data: fatalities, injuries, property damage, and crop 
-damage, along with the event type and the event reference number.
-
-```{r}
-subsetData <- subset(data,select=c(EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG,REFNUM))
-```
-
-Rather than judge the relative severity of X fatalities vs Y injuries, let's
-combine both of those into one category called Casualties
+damage, along with the event type and the event reference number.  Rather than 
+judge the relative severity of X fatalities vs Y injuries, let's combine both of 
+those into one category called Casualties.  Likewise with the property and
+crop damage.
 
 ```{r}
 impact <- data.table(EventType = data$EVTYPE,
@@ -49,6 +49,52 @@ impact <- data.table(EventType = data$EVTYPE,
                      ReferenceNum = data$REFNUM)
 ```
 
+There are a lot of events with the same event type but different capitalization
+schemes (e.g. "HEAT WAVE" and "Heat Wave").  We can catch and clean up these
+classification mismatches by making all the event types lower case.
+
+```{r}
+impact$EventType <- tolower(impact$EventType)
+```
+
+There are also a lot of events that are effective the same event type, but have
+slightly different naming schemes (e.g. "thunderstorm wind", "tstm wind", and 
+"thunderstormw").  We should try to catch these and simplify the categories.
+
+```{r}
+# Clean up naming variations
+```
+
+# Analysis
+
+Let's find the event types where the most casualties occured.  Rather than look
+at individual events, let's look at the average casualties for a given event
+type.
+
+```{r}
+avgCasualties <- aggregate(x = list(AvgCasualties = impact$Casualties),
+                           by = list(EventType = impact$EventType),
+                           FUN = mean)
+avgCasualties <- data.table(avgCasualties)
+# Sort to list the event types with most casualties first, then remove event
+# types that have no casualties
+setorder(avgCasualties,-AvgCasualties)
+avgCasualties <- avgCasualties[ which(avgCasualties$AvgCasualties > 0), ]
+```
+
+
+
+# Results
+
+
+
+
+
+
+
+
+
+# Exploratory work
 ```{r}
 with(data,plot(EVTYPE,FATALITIES))
 avgFatalities <- aggregate(x = list(AvgFatalities = data$FATALITIES),
@@ -74,5 +120,3 @@ avgInjuries <- data.table(avgInjuries)
 setorder(avgInjuries, -AvgInjuries)
 head(avgInjuries,20)
 ```
-
-# Results
