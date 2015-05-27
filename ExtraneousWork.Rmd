@@ -1,0 +1,79 @@
+---
+title: "ExtraneousWork"
+author: "jsalzwedel"
+date: "05/27/2015"
+output: html_document
+---
+
+
+We are interested in the health and economic impacts of events. Let's subset the
+relevant sections of the data: fatalities, injuries, property damage, and crop 
+damage, along with the event type and the event reference number.  Rather than 
+judge the relative severity of X fatalities vs Y injuries, let's combine both of 
+those into one category called Casualties.  Likewise with the property and
+crop damage.
+
+```{r}
+impact <- data.table(EventType = data$EVTYPE,
+                     Casualties = data$FATALITIES + data$INJURIES,
+                     Costs = data$PROPDMG + data$CROPDMG,
+                     ReferenceNum = data$REFNUM)
+```
+
+
+
+
+Let's find the event types where the most casualties occured.  Rather than look
+at individual events, let's look at the average casualties for a given event
+type.
+
+```{r}
+avgCasualties <- aggregate(x = list(AvgCasualties = impact$Casualties),
+                           by = list(EventType = impact$EventType),
+                           FUN = mean)
+avgCasualties <- data.table(avgCasualties)
+# Sort to list the event types with most casualties first, then remove event
+# types that have no casualties
+setorder(avgCasualties,-AvgCasualties)
+avgCasualties <- avgCasualties[ which(avgCasualties$AvgCasualties > 0), ]
+```
+
+
+
+```{r}
+# Clean up naming variations
+```
+
+
+```{r}
+impact$EventType <- tolower(impact$EventType)
+```
+
+
+
+# Exploratory work
+```{r}
+with(data,plot(EVTYPE,FATALITIES))
+avgFatalities <- aggregate(x = list(AvgFatalities = data$FATALITIES),
+                           by=list(Event = data$EVTYPE),
+                           FUN=mean)
+avgFatalities <- data.table(avgFatalities)
+setorder(avgFatalities,-AvgFatalities)
+head(avgFatalities)
+```
+
+Let's take a closer look at the events where fatalities occured
+```{r}
+fatalData <- data[data$FATALITIES > 0,]
+setorder(fatalData,-FATALITIES)
+```
+
+
+```{r}
+avgInjuries <- aggregate(x = list(AvgInjuries = data$INJURIES),
+                           by=list(Event = data$EVTYPE),
+                           FUN=mean)
+avgInjuries <- data.table(avgInjuries)
+setorder(avgInjuries, -AvgInjuries)
+head(avgInjuries,20)
+```
